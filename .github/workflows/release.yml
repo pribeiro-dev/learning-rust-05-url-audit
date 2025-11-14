@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build
+        run: cargo build --release
+      - name: Prepare package
+        shell: bash
+        run: |
+          set -euxo pipefail
+          PKG=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].name')
+          VER="${GITHUB_REF_NAME#v}"
+          mkdir -p dist
+          BINPATH="target/release/$PKG"
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            BINPATH="${BINPATH}.exe"
+          fi
+          cp "$BINPATH" dist/
+          cp -f README.md LICENSE dist/ || true
+          (cd dist && zip -r "${PKG}-${VER}-${{ matrix.os }}.zip" .)
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.os }}
+          path: dist/*.zip
+      - name: Attach to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
