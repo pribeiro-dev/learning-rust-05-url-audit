@@ -114,9 +114,19 @@ async fn fetch_row(client: &reqwest::Client, url: String, tmo: Duration) -> OutR
                     .get(reqwest::header::CONTENT_LENGTH)
                     .and_then(|v| v.to_str().ok())
                     .and_then(|s| s.parse::<u64>().ok());
-                OutRow { url, status: Some(status), len, error: None }
+                OutRow {
+                    url,
+                    status: Some(status),
+                    len,
+                    error: None,
+                }
             }
-            Err(e) => OutRow { url, status: None, len: None, error: Some(e.to_string()) },
+            Err(e) => OutRow {
+                url,
+                status: None,
+                len: None,
+                error: Some(e.to_string()),
+            },
         }
     };
 
