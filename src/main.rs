@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use clap::Parser;
 use serde::{Deserialize, Serialize};
-use tokio::time::{timeout, Duration};
+use tokio::time::Duration;
 use tracing::{info, Level};
 use tracing_subscriber::EnvFilter;
 
