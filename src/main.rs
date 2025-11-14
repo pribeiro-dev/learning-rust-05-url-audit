@@ -102,6 +102,9 @@ async fn main() -> Result<()> {
 }
 
 async fn fetch_row(client: &reqwest::Client, url: String, tmo: Duration) -> OutRow {
+    // Keep one clone for the timeout case
+    let url_for_timeout = url.clone();
+
     let fut = async {
         match client.get(&url).send().await {
             Ok(resp) => {
@@ -111,25 +114,16 @@ async fn fetch_row(client: &reqwest::Client, url: String, tmo: Duration) -> OutR
                     .get(reqwest::header::CONTENT_LENGTH)
                     .and_then(|v| v.to_str().ok())
                     .and_then(|s| s.parse::<u64>().ok());
-                OutRow {
-                    url,
-                    status: Some(status),
-                    len,
-                    error: None,
-                }
+                OutRow { url, status: Some(status), len, error: None }
             }
-            Err(e) => OutRow {
-                url,
-                status: None,
-                len: None,
-                error: Some(e.to_string()),
-            },
+            Err(e) => OutRow { url, status: None, len: None, error: Some(e.to_string()) },
         }
     };
-    match timeout(tmo, fut).await {
+
+    match tokio::time::timeout(tmo, fut).await {
         Ok(row) => row,
         Err(_) => OutRow {
-            url,
+            url: url_for_timeout,
             status: None,
             len: None,
             error: Some("timeout".into()),
